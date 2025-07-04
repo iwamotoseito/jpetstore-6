@@ -32,4 +32,3 @@ jobs:
           key: ${{ secrets.DEPLOY_KEY }}
           script: |
             mv /opt/jpetstore/your-artifact.war /usr/local/tomcat/webapps/
-            sudo systemctl restart tomcat
