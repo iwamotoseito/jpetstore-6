@@ -1,4 +1,4 @@
-name: Deploy and Run with Cargo (Foreground)
+name: Deploy and Run with Cargo (Start and Stop)
 
 on:
   push:
@@ -31,8 +31,8 @@ jobs:
           source: "."  # プロジェクト全体をコピー
           target: "/home/${{ secrets.EC2_USER }}/jpetstore"
 
-      # 5. EC2上で cargo:run をフォアグラウンドで実行（ログをGitHub Actionsに表示）
-      - name: Run application on EC2 (foreground)
+      # 5. EC2上で cargo:run をバックグラウンドで起動 → ログ確認 → 停止
+      - name: Run Cargo temporarily and stop
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -45,5 +45,16 @@ jobs:
             chmod +x ./mvnw
             echo "✅ Maven Wrapper に実行権限を付与"
 
-            echo "🚀 Cargo をフォアグラウンドで起動中..."
-            ./mvnw cargo:run -P tomcat90
+            echo "🚀 Cargo をバックグラウンドで起動中..."
+            nohup ./mvnw cargo:run -P tomcat90 > app.log 2>&1 &
+
+            echo "⏳ Cargo の起動を待機中..."
+            timeout 60 bash -c 'until grep -q "Press Ctrl-C to stop the container" app.log; do sleep 2; done' || echo "⚠️ 起動確認メッセージが見つかりませんでした"
+
+            echo "📄 Cargo ログの一部を表示："
+            tail -n 20 app.log
+
+            echo "🛑 Cargo プロセスを停止中..."
+            pkill -f 'org.codehaus.cargo' || echo "⚠️ Cargo プロセスが見つかりませんでした"
+
+            echo "✅ デプロイ完了 & ジョブ終了"
