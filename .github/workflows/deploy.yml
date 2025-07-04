@@ -2,33 +2,44 @@ name: Deploy to EC2
 
 on:
   push:
-    branches: [ "master" ]  # ← デプロイしたいブランチ名に合わせて修正
+    branches: [ "master" ]  # ← デプロイ対象ブランチ
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. ソースコードをチェックアウト
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # 2. Maven Wrapper に実行権限を付与
+      - name: Make Maven Wrapper executable
+        run: chmod +x ./mvnw
+
+      # 3. Mavenでビルド（warファイル生成）
       - name: Build with Maven
         run: ./mvnw clean package
 
-      - name: Copy artifact to EC2
+      # 4. プロジェクト全体をEC2にコピー（.gitなど除外したい場合はrsync推奨）
+      - name: Copy project to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.DEPLOY_KEY }}
-          source: target/jpetstore.war   # ←成果物のファイル名に合わせて修正
-          target: /opt/jpetstore/            # ←送り先ディレクトリに合わせて修正
+          source: "."  # プロジェクト全体をコピー
+          target: "/home/${{ secrets.EC2_USER }}/jpetstore"  # 任意のディレクトリに配置
 
-      - name: Deploy on EC2
+      # 5. EC2上で cargo:run を実行
+      - name: Run application on EC2 with Cargo
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.DEPLOY_KEY }}
           script: |
-            mv /opt/jpetstore/your-artifact.war /usr/local/tomcat/webapps/
+            cd /home/${{ secrets.EC2_USER }}/jpetstore
+            chmod +x ./mvnw
+            pkill -f 'org.codehaus.cargo' || true  # 既存のCargoプロセスを停止（任意）
+            nohup ./mvnw cargo:run -P tomcat90 > app.log 2>&1 &
