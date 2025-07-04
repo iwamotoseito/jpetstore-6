@@ -21,7 +21,7 @@ jobs:
       - name: Build with Maven
         run: ./mvnw clean package
 
-      # 4. プロジェクト全体をEC2にコピー（.gitなど除外したい場合はrsync推奨）
+      # 4. プロジェクト全体をEC2にコピー
       - name: Copy project to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -29,9 +29,9 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.DEPLOY_KEY }}
           source: "."  # プロジェクト全体をコピー
-          target: "/home/${{ secrets.EC2_USER }}/jpetstore"  # 任意のディレクトリに配置
+          target: "/home/${{ secrets.EC2_USER }}/jpetstore"
 
-      # 5. EC2上で cargo:run を実行
+      # 5. EC2上で cargo:run をバックグラウンドで起動し、セッションから切り離す
       - name: Run application on EC2 with Cargo
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -41,5 +41,4 @@ jobs:
           script: |
             cd /home/${{ secrets.EC2_USER }}/jpetstore
             chmod +x ./mvnw
-            pkill -f 'org.codehaus.cargo' || true  # 既存のCargoプロセスを停止（任意）
-            nohup ./mvnw cargo:run -P tomcat90 > app.log 2>&1 &
+            pkill
