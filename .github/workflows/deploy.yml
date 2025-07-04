@@ -1,4 +1,4 @@
-name: Deploy to EC2
+name: Deploy and Run with Cargo (Foreground)
 
 on:
   push:
@@ -31,8 +31,8 @@ jobs:
           source: "."  # プロジェクト全体をコピー
           target: "/home/${{ secrets.EC2_USER }}/jpetstore"
 
-      # 5. EC2上で tmux を使って Cargo を起動
-      - name: Run application on EC2 with tmux
+      # 5. EC2上で cargo:run をフォアグラウンドで実行（ログをGitHub Actionsに表示）
+      - name: Run application on EC2 (foreground)
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -45,10 +45,5 @@ jobs:
             chmod +x ./mvnw
             echo "✅ Maven Wrapper に実行権限を付与"
 
-            echo "🛑 既存の Cargo プロセスを停止中（tmuxセッションを終了）..."
-            tmux kill-session -t jpetstore || echo "⚠️ tmux セッションが見つかりませんでした"
-
-            echo "🚀 Cargo を tmux セッションで起動中..."
-            tmux new-session -d -s jpetstore './mvnw cargo:run -P tomcat90'
-
-            echo "✅ アプリケーションを tmux セッションで起動しました"
+            echo "🚀 Cargo をフォアグラウンドで起動中..."
+            ./mvnw cargo:run -P tomcat90
