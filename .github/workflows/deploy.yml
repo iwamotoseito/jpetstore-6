@@ -1,0 +1,35 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [ "main" ]  # ← デプロイしたいブランチ名に合わせて修正
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build with Maven
+        run: ./mvnw clean package
+
+      - name: Copy artifact to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          source: target/your-artifact.war   # ←成果物のファイル名に合わせて修正
+          target: /opt/jpetstore/            # ←送り先ディレクトリに合わせて修正
+
+      - name: Deploy on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          script: |
+            mv /opt/jpetstore/your-artifact.war /usr/local/tomcat/webapps/
+            sudo systemctl restart tomcat
