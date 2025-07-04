@@ -40,5 +40,16 @@ jobs:
           key: ${{ secrets.DEPLOY_KEY }}
           script: |
             cd /home/${{ secrets.EC2_USER }}/jpetstore
+            echo "✅ ディレクトリ移動完了"
+
             chmod +x ./mvnw
-            pkill
+            echo "✅ Maven Wrapper に実行権限を付与"
+
+            echo "🛑 既存の Cargo プロセスを停止中..."
+            pkill -f 'org.codehaus.cargo' || echo "⚠️ Cargo プロセスが見つかりませんでした"
+
+            echo "🚀 Cargo によるアプリケーション起動中..."
+            nohup ./mvnw cargo:run -P tomcat90 > app.log 2>&1 &
+            disown
+
+            echo "✅ アプリケーションをバックグラウンドで起動しました"
