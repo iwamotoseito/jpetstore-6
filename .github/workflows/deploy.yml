@@ -31,8 +31,8 @@ jobs:
           source: "."  # プロジェクト全体をコピー
           target: "/home/${{ secrets.EC2_USER }}/jpetstore"
 
-      # 5. EC2上で cargo:run をバックグラウンドで起動し、セッションから切り離す
-      - name: Run application on EC2 with Cargo
+      # 5. EC2上で tmux を使って Cargo を起動
+      - name: Run application on EC2 with tmux
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -45,11 +45,10 @@ jobs:
             chmod +x ./mvnw
             echo "✅ Maven Wrapper に実行権限を付与"
 
-            echo "🛑 既存の Cargo プロセスを停止中..."
-            pkill -f 'org.codehaus.cargo' || echo "⚠️ Cargo プロセスが見つかりませんでした"
+            echo "🛑 既存の Cargo プロセスを停止中（tmuxセッションを終了）..."
+            tmux kill-session -t jpetstore || echo "⚠️ tmux セッションが見つかりませんでした"
 
-            echo "🚀 Cargo によるアプリケーション起動中..."
-            nohup ./mvnw cargo:run -P tomcat90 > app.log 2>&1 &
-            disown
+            echo "🚀 Cargo を tmux セッションで起動中..."
+            tmux new-session -d -s jpetstore './mvnw cargo:run -P tomcat90'
 
-            echo "✅ アプリケーションをバックグラウンドで起動しました"
+            echo "✅ アプリケーションを tmux セッションで起動しました"
