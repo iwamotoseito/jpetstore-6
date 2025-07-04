@@ -21,7 +21,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.DEPLOY_KEY }}
-          source: target/your-artifact.war   # ←成果物のファイル名に合わせて修正
+          source: target/jpetstore.war   # ←成果物のファイル名に合わせて修正
           target: /opt/jpetstore/            # ←送り先ディレクトリに合わせて修正
 
       - name: Deploy on EC2
